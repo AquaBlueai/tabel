@@ -1,0 +1,100 @@
+:root {
+  --bg: #f4f5f7; --surface: #ffffff; --text: #1a1d23; --hint: #6b7280; --border: #e3e5e9;
+  --accent: #2563eb; --accent-text: #ffffff;
+  --ok: #15803d; --ok-bg: #dcfce7; --warn: #a16207; --warn-bg: #fef3c7;
+  --bad: #b91c1c; --bad-bg: #fee2e2; --mark: #1d4ed8; --mark-bg: #dbeafe; --off-bg: #eef0f3;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #111317; --surface: #1a1d23; --text: #e8eaed; --hint: #9aa0a9; --border: #2c3038;
+    --accent: #3b82f6; --ok: #4ade80; --ok-bg: #14532d55; --warn: #facc15; --warn-bg: #713f1255;
+    --bad: #f87171; --bad-bg: #7f1d1d55; --mark: #93c5fd; --mark-bg: #1e3a8a55; --off-bg: #23262d;
+  }
+}
+* { box-sizing: border-box; }
+body { margin: 0; font: 14px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--text); }
+.hidden { display: none !important; }
+.hint { color: var(--hint); }
+h1 { font-size: 20px; margin: 0 0 4px; }
+h2 { font-size: 16px; margin: 0 0 12px; }
+code { background: var(--off-bg); padding: 1px 5px; border-radius: 4px; }
+
+button { font: inherit; cursor: pointer; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); color: var(--text); padding: 7px 14px; }
+button.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-text); font-weight: 600; }
+button.ghost { background: transparent; }
+button.danger { color: var(--bad); }
+button.sm { padding: 3px 9px; font-size: 13px; }
+input, select { font: inherit; padding: 7px 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--text); }
+label { display: block; color: var(--hint); font-size: 13px; margin-bottom: 10px; }
+label input, label select { display: block; width: 100%; margin-top: 4px; color: var(--text); }
+label.chk { display: inline-flex; gap: 6px; align-items: center; margin: 0; }
+label.chk input { display: inline; width: auto; margin: 0; }
+
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px; }
+.login { min-height: 100vh; display: grid; place-items: center; padding: 16px; }
+.login .card { width: 100%; max-width: 360px; }
+.login button { width: 100%; padding: 10px; }
+
+header { display: flex; align-items: center; gap: 16px; padding: 10px 20px; background: var(--surface); border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 5; flex-wrap: wrap; }
+.brand { font-weight: 700; font-size: 16px; }
+nav { display: flex; gap: 4px; flex: 1; flex-wrap: wrap; }
+nav button { border: 0; background: transparent; color: var(--hint); }
+nav button.active { background: var(--off-bg); color: var(--text); font-weight: 600; }
+.pill { background: var(--bad); color: #fff; border-radius: 999px; padding: 0 7px; font-size: 12px; }
+
+main { padding: 20px; }
+.toolbar { display: flex; gap: 8px; align-items: center; margin-bottom: 12px; flex-wrap: wrap; }
+.spacer { flex: 1; }
+
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 16px; }
+.stat { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+.stat b { display: block; font-size: 26px; font-variant-numeric: tabular-nums; }
+.stat span { color: var(--hint); font-size: 13px; }
+
+.tablewrap { overflow: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; max-height: calc(100vh - 190px); }
+table { border-collapse: collapse; width: 100%; }
+th, td { padding: 8px 10px; border-bottom: 1px solid var(--border); text-align: left; white-space: nowrap; }
+th { background: var(--surface); position: sticky; top: 0; z-index: 2; font-weight: 600; color: var(--hint); font-size: 12px; }
+.list tr:hover td { background: var(--off-bg); }
+
+.ts th, .ts td { padding: 0; text-align: center; border-right: 1px solid var(--border); font-variant-numeric: tabular-nums; }
+.ts th { padding: 4px 0; min-width: 38px; }
+.ts th small { display: block; font-weight: 400; }
+.ts th.off { background: var(--off-bg); }
+.ts .name { position: sticky; left: 0; background: var(--surface); text-align: left; padding: 6px 10px; min-width: 220px; z-index: 1; }
+.ts th.name { z-index: 3; }
+.ts .name small { display: block; color: var(--hint); }
+.ts td.c { cursor: pointer; height: 44px; font-size: 12px; }
+.ts td.c:hover { outline: 2px solid var(--accent); outline-offset: -2px; }
+.ts td.c small { display: block; font-size: 10px; color: var(--hint); }
+.ts .work { color: var(--ok); font-weight: 600; }
+.ts .late { background: var(--warn-bg); color: var(--warn); }
+.ts .absent { background: var(--bad-bg); color: var(--bad); font-weight: 600; }
+.ts .mark { background: var(--mark-bg); color: var(--mark); font-weight: 600; }
+.ts .off { background: var(--off-bg); color: var(--hint); }
+.ts .open { color: var(--warn); }
+.ts .tot { padding: 4px 8px; font-weight: 600; }
+.legend { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 10px; color: var(--hint); font-size: 13px; }
+.legend b { padding: 1px 6px; border-radius: 4px; }
+
+.badge { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 12px; font-weight: 600; }
+.b-ok { background: var(--ok-bg); color: var(--ok); }
+.b-warn { background: var(--warn-bg); color: var(--warn); }
+.b-bad { background: var(--bad-bg); color: var(--bad); }
+.b-mark { background: var(--mark-bg); color: var(--mark); }
+.b-muted { background: var(--off-bg); color: var(--hint); }
+
+dialog { border: 1px solid var(--border); border-radius: 14px; padding: 20px; background: var(--surface); color: var(--text); width: min(440px, calc(100vw - 32px)); }
+dialog::backdrop { background: #0006; }
+.dlg-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 14px; }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0 12px; }
+.err { background: var(--bad-bg); color: var(--bad); padding: 8px 12px; border-radius: 8px; margin-bottom: 10px; }
+.settings { max-width: 640px; }
+.settings fieldset { border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; margin: 0 0 14px; }
+.settings legend { font-weight: 600; padding: 0 6px; }
+
+@media (max-width: 640px) {
+  main { padding: 12px; }
+  header { padding: 8px 12px; }
+  .ts .name { min-width: 150px; }
+}

@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="uz">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Табель — HR панели</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="login" class="login hidden">
+  <form class="card" id="loginForm">
+    <h1>Табель · HR</h1>
+    <p class="hint">Тизимга кириш</p>
+    <div id="loginErr"></div>
+    <label>Логин<input name="username" autocomplete="username" required></label>
+    <label>Парол<input name="password" type="password" autocomplete="current-password" required></label>
+    <button class="primary" type="submit">Кириш</button>
+  </form>
+</div>
+
+<div id="appShell" class="hidden">
+  <header>
+    <div class="brand">🕘 Табель <span id="company" class="hint"></span></div>
+    <nav>
+      <button data-tab="today" class="active">Бугун</button>
+      <button data-tab="timesheet">Табель</button>
+      <button data-tab="employees">Ходимлар <span id="pendingBadge" class="pill hidden"></span></button>
+      <button data-tab="settings">Созламалар</button>
+    </nav>
+    <button class="ghost" id="logout">Чиқиш</button>
+  </header>
+
+  <main>
+    <section id="tab-today"></section>
+
+    <section id="tab-timesheet" class="hidden">
+      <div class="toolbar">
+        <button class="ghost" id="prevM">‹</button>
+        <input type="month" id="month">
+        <button class="ghost" id="nextM">›</button>
+        <input type="search" id="tsFilter" placeholder="Ходим қидириш…">
+        <label class="chk"><input type="checkbox" id="tsAll"> Ишдан бўшаганлар ҳам</label>
+        <span class="spacer"></span>
+        <button class="primary" id="exportXlsx">⬇ Excel</button>
+      </div>
+      <div class="tablewrap"><table id="tsTable" class="ts"></table></div>
+      <div id="legend" class="legend"></div>
+    </section>
+
+    <section id="tab-employees" class="hidden">
+      <div class="toolbar">
+        <input type="search" id="empFilter" placeholder="Қидириш…">
+        <span class="spacer"></span>
+        <button class="primary" id="addEmp">+ Ходим қўшиш</button>
+      </div>
+      <div class="tablewrap"><table id="empTable" class="list"></table></div>
+      <p class="hint">Ходимлар ботдаги Mini App орқали ўзлари рўйхатдан ўтади — сиз уларни шу ерда тасдиқлайсиз. Қўлда қўшилган ходим учун Telegram ID ни киритинг (ходим ботга <code>/id</code> ёзиб билиб олади).</p>
+    </section>
+
+    <section id="tab-settings" class="hidden"></section>
+  </main>
+</div>
+
+<dialog id="dlg"><form method="dialog" id="dlgForm"></form></dialog>
+
+<script src="app.js"></script>
+</body>
+</html>

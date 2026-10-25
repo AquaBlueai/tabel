@@ -1,0 +1,247 @@
+<!doctype html>
+<html lang="uz">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <title>Табель</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <style>
+    :root {
+      --bg: var(--tg-theme-bg-color, #ffffff);
+      --bg2: var(--tg-theme-secondary-bg-color, #f2f3f5);
+      --text: var(--tg-theme-text-color, #111111);
+      --hint: var(--tg-theme-hint-color, #8a8f98);
+      --accent: var(--tg-theme-button-color, #2481cc);
+      --accent-text: var(--tg-theme-button-text-color, #ffffff);
+      --ok: #1f9d55; --warn: #d69e2e; --bad: #e53e3e; --mark: #3b6fd6;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: -apple-system, system-ui, "Segoe UI", Roboto, sans-serif; background: var(--bg2); color: var(--text); }
+    .wrap { max-width: 520px; margin: 0 auto; padding: 16px; }
+    .card { background: var(--bg); border-radius: 14px; padding: 16px; margin-bottom: 12px; }
+    h1 { font-size: 18px; margin: 0 0 4px; }
+    .hint { color: var(--hint); font-size: 14px; }
+    .clock { font-size: 44px; font-weight: 700; text-align: center; font-variant-numeric: tabular-nums; margin: 8px 0 0; }
+    .date { text-align: center; color: var(--hint); margin-bottom: 8px; }
+    .row { display: flex; gap: 10px; }
+    .stat { flex: 1; background: var(--bg2); border-radius: 10px; padding: 10px; text-align: center; }
+    .stat b { display: block; font-size: 22px; font-variant-numeric: tabular-nums; }
+    .stat span { font-size: 12px; color: var(--hint); }
+    button { font: inherit; border: 0; border-radius: 12px; padding: 16px; width: 100%; font-weight: 600; font-size: 17px; cursor: pointer; }
+    button:disabled { opacity: .45; }
+    .btn-in { background: var(--ok); color: #fff; }
+    .btn-out { background: var(--bad); color: #fff; }
+    .btn-primary { background: var(--accent); color: var(--accent-text); }
+    input { width: 100%; padding: 12px; border-radius: 10px; border: 1px solid color-mix(in srgb, var(--hint) 40%, transparent); background: var(--bg); color: var(--text); font: inherit; margin: 6px 0 12px; }
+    label { font-size: 14px; color: var(--hint); }
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 12px; font-weight: 600; }
+    .badge.late { background: color-mix(in srgb, var(--warn) 20%, transparent); color: var(--warn); }
+    .badge.ok { background: color-mix(in srgb, var(--ok) 18%, transparent); color: var(--ok); }
+    .cal { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; margin-top: 10px; }
+    .cal div { aspect-ratio: 1; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 12px; background: var(--bg2); }
+    .cal .wd { background: none; color: var(--hint); aspect-ratio: auto; padding: 4px 0; }
+    .cal small { font-size: 10px; font-weight: 600; }
+    .cal .work small { color: var(--ok); } .cal .late small { color: var(--warn); }
+    .cal .absent small { color: var(--bad); } .cal .mark small { color: var(--mark); }
+    .cal .off { opacity: .5; } .cal .today { outline: 2px solid var(--accent); }
+    .monthnav { display: flex; align-items: center; justify-content: space-between; }
+    .monthnav button { width: auto; padding: 6px 14px; background: var(--bg2); color: var(--text); font-size: 15px; }
+    .msg { padding: 12px; border-radius: 10px; margin-bottom: 12px; font-size: 14px; }
+    .msg.err { background: color-mix(in srgb, var(--bad) 15%, transparent); color: var(--bad); }
+    .msg.ok { background: color-mix(in srgb, var(--ok) 15%, transparent); color: var(--ok); }
+    .center { text-align: center; }
+    .hidden { display: none; }
+  </style>
+</head>
+<body>
+<div class="wrap" id="root"><div class="card center hint">Юкланмоқда…</div></div>
+
+<script>
+const tg = window.Telegram?.WebApp;
+tg?.ready(); tg?.expand();
+const root = document.getElementById('root');
+const MONTHS = ['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
+let state = { me: null, month: null, flash: null };
+
+async function api(path, opts = {}) {
+  const res = await fetch(path, {
+    ...opts,
+    headers: { 'Content-Type': 'application/json', 'X-Telegram-Init-Data': tg?.initData || '', ...(opts.headers || {}) },
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || 'Хатолик');
+  return data;
+}
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+function getLocation() {
+  return new Promise((resolve) => {
+    const lm = tg?.LocationManager;
+    const fallback = () => {
+      if (!navigator.geolocation) return resolve(null);
+      navigator.geolocation.getCurrentPosition(
+        (p) => resolve({ lat: p.coords.latitude, lng: p.coords.longitude }),
+        () => resolve(null), { enableHighAccuracy: true, timeout: 15000 });
+    };
+    if (lm && tg.isVersionAtLeast?.('8.0')) {
+      lm.init(() => {
+        if (!lm.isLocationAvailable) return fallback();
+        lm.getLocation((loc) => (loc ? resolve({ lat: loc.latitude, lng: loc.longitude }) : fallback()));
+      });
+    } else fallback();
+  });
+}
+
+async function load() {
+  try {
+    state.me = await api('/api/me');
+    state.month ||= state.me.now.date.slice(0, 7);
+    render();
+  } catch (e) {
+    root.innerHTML = `<div class="card"><div class="msg err">${esc(e.message)}</div>
+      <p class="hint">Илова Telegram бот ичидан очилиши керак.</p></div>`;
+  }
+}
+
+function render() {
+  const { employee } = state.me;
+  if (!employee) return renderRegister();
+  if (employee.status === 'pending') {
+    root.innerHTML = `<div class="card center"><h1>⏳ Сўровингиз юборилди</h1>
+      <p class="hint">${esc(employee.full_name)}, HR бўлими ҳисобингизни тасдиқлагандан сўнг белгилаш мумкин бўлади.</p>
+      <button class="btn-primary" onclick="load()">Янгилаш</button></div>`;
+    return;
+  }
+  if (employee.status !== 'active') {
+    root.innerHTML = `<div class="card center"><h1>Ҳисоб фаол эмас</h1><p class="hint">HR бўлимига мурожаат қилинг.</p></div>`;
+    return;
+  }
+  renderMain();
+}
+
+function renderRegister() {
+  const tgu = state.me.tg;
+  root.innerHTML = `<div class="card">
+    <h1>Рўйхатдан ўтиш</h1>
+    <p class="hint">${esc(state.me.settings.company_name)} табель тизими. Маълумотларингизни киритинг — HR тасдиқлайди.</p>
+    <div id="m"></div>
+    <label>Ф.И.Ш.</label><input id="fn" value="${esc([tgu.last_name, tgu.first_name].filter(Boolean).join(' '))}" placeholder="Фамилия Исм Шарифи">
+    <label>Лавозим</label><input id="pos" placeholder="Масалан: Бухгалтер">
+    <label>Телефон</label><input id="ph" type="tel" placeholder="+998 __ ___ __ __">
+    <button class="btn-primary" id="reg">Юбориш</button></div>`;
+  document.getElementById('reg').onclick = async (ev) => {
+    ev.target.disabled = true;
+    try {
+      await api('/api/register', { method: 'POST', body: JSON.stringify({
+        full_name: fn.value, position: pos.value, phone: ph.value }) });
+      tg?.HapticFeedback?.notificationOccurred('success');
+      load();
+    } catch (e) {
+      document.getElementById('m').innerHTML = `<div class="msg err">${esc(e.message)}</div>`;
+      ev.target.disabled = false;
+    }
+  };
+}
+
+function renderMain() {
+  const { employee, today, settings, now } = state.me;
+  const inDone = !!today?.check_in;
+  const [y, m, d] = now.date.split('-');
+  root.innerHTML = `
+    <div class="card">
+      <h1>${esc(employee.full_name)}</h1>
+      <div class="hint">${esc(employee.position || '')} · Иш вақти ${settings.work_start}–${settings.work_end}</div>
+      <div class="clock" id="clock">${now.time}</div>
+      <div class="date">${+d} ${MONTHS[+m - 1]} ${y}</div>
+      ${state.flash ? `<div class="msg ${state.flash.type}">${esc(state.flash.text)}</div>` : ''}
+      <div class="row" style="margin-bottom:12px">
+        <div class="stat"><b>${today?.check_in || '—'}</b><span>Келди ${today?.late ? '<span class="badge late">кечикди</span>' : ''}</span></div>
+        <div class="stat"><b>${today?.check_out || '—'}</b><span>Кетди</span></div>
+        <div class="stat"><b>${today?.hours || 0}</b><span>соат</span></div>
+      </div>
+      <div class="row">
+        <button class="btn-in" id="bin" ${inDone ? 'disabled' : ''}>✅ Келдим</button>
+        <button class="btn-out" id="bout" ${!inDone ? 'disabled' : ''}>🏁 Кетдим</button>
+      </div>
+      ${settings.geofence ? '<p class="hint center" style="margin:10px 0 0">📍 Белгилашда жойлашувингиз текширилади</p>' : ''}
+    </div>
+    <div class="card" id="hist"><div class="hint center">Юкланмоқда…</div></div>`;
+  state.flash = null;
+  document.getElementById('bin').onclick = (e) => check('in', e.target);
+  document.getElementById('bout').onclick = (e) => check('out', e.target);
+  loadHistory();
+}
+
+async function check(type, btn) {
+  if (type === 'out' && state.me.today?.check_out) {
+    const ok = await new Promise((r) => tg?.showConfirm
+      ? tg.showConfirm(`Кетиш вақти ${state.me.today.check_out} да белгиланган. Янгилансинми?`, r)
+      : r(confirm('Кетиш вақтини янгилаш?')));
+    if (!ok) return;
+  }
+  btn.disabled = true;
+  const old = btn.textContent;
+  btn.textContent = 'Юборилмоқда…';
+  try {
+    const loc = state.me.settings.geofence ? await getLocation() : null;
+    const r = await api('/api/check', { method: 'POST', body: JSON.stringify({ type, ...(loc || {}) }) });
+    state.me.today = r.today;
+    tg?.HapticFeedback?.notificationOccurred('success');
+    state.flash = { type: 'ok', text: type === 'in' ? `Келганингиз ${r.today.check_in} да белгиланди` : `Кетганингиз ${r.today.check_out} да белгиланди. Яхши дам олинг!` };
+    await load();
+  } catch (e) {
+    tg?.HapticFeedback?.notificationOccurred('error');
+    state.flash = { type: 'err', text: e.message };
+    btn.textContent = old;
+    renderMain();
+  }
+}
+
+function shiftMonth(delta) {
+  const [y, m] = state.month.split('-').map(Number);
+  const dt = new Date(Date.UTC(y, m - 1 + delta, 1));
+  state.month = dt.toISOString().slice(0, 7);
+  loadHistory();
+}
+
+async function loadHistory() {
+  const el = document.getElementById('hist');
+  try {
+    const h = await api('/api/my-history?month=' + state.month);
+    const [y, m] = state.month.split('-').map(Number);
+    const firstWd = (new Date(Date.UTC(y, m - 1, 1)).getUTCDay() + 6) % 7; // Душанбадан бошланади
+    const cells = h.days.map((d, i) => {
+      const c = h.cells[i] || {};
+      let cls = c.kind || 'empty', label = '';
+      if (c.kind === 'work') { label = c.open ? c.in : c.hours + 'с'; if (c.late) cls = 'late'; }
+      else if (c.code) label = c.code;
+      if (d.date === state.me.now.date) cls += ' today';
+      return `<div class="${cls}">${d.d}<small>${esc(label)}</small></div>`;
+    });
+    const t = h.totals || {};
+    const isCurrent = state.month === state.me.now.date.slice(0, 7);
+    el.innerHTML = `
+      <div class="monthnav"><button onclick="shiftMonth(-1)">‹</button>
+        <b>${MONTHS[m - 1]} ${y}</b>
+        <button onclick="shiftMonth(1)" ${isCurrent ? 'disabled' : ''}>›</button></div>
+      <div class="row" style="margin-top:10px">
+        <div class="stat"><b>${t.worked ?? 0}/${t.norm_days ?? 0}</b><span>иш куни</span></div>
+        <div class="stat"><b>${t.hours ?? 0}</b><span>соат</span></div>
+        <div class="stat"><b>${t.late ?? 0}</b><span>кечикиш</span></div>
+      </div>
+      <div class="cal">${['Ду','Се','Чо','Па','Жу','Ша','Як'].map((w) => `<div class="wd">${w}</div>`).join('')}
+        ${'<div style="visibility:hidden"></div>'.repeat(firstWd)}${cells.join('')}</div>`;
+  } catch (e) {
+    el.innerHTML = `<div class="msg err">${esc(e.message)}</div>`;
+  }
+}
+
+setInterval(() => {
+  const c = document.getElementById('clock');
+  if (c) c.textContent = new Intl.DateTimeFormat('ru-RU', { hour: '2-digit', minute: '2-digit', timeZone: state.me?.tz || 'Asia/Tashkent' }).format(new Date());
+}, 10000);
+
+load();
+</script>
+</body>
+</html>
